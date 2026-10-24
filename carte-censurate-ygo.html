@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carte censurate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0a09;--surf:#15120f;--line:#2a241e;--ink:#f3ebdd;--soft:#a39888;--acc:#e5483a;--ok:#8fbf7a;
+--R:#c9a24a;--V:#e0605c;--A:#6fa3c7;--N:#d98aa8;--D:#8fbf7a;--T:#b79bd6;--X:#a39888;
+--gut:clamp(20px,6vw,96px);--p:0}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 Geist,system-ui,sans-serif}
+h1,h2,.disp{font-family:Archivo,Impact,sans-serif}
+a{color:var(--soft)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* hero: tre piani a velocita' diverse, le barre di censura escono scrollando */
+.hero{position:relative;min-height:100svh;overflow:hidden;display:flex;align-items:center;padding:0 var(--gut)}
+.bgword{position:absolute;left:-2vw;top:50%;font:900 clamp(120px,27vw,430px)/.8 Archivo,Impact,sans-serif;color:transparent;-webkit-text-stroke:1px #2f2822;white-space:nowrap;user-select:none;pointer-events:none;transform:translate3d(calc(var(--p)*-16vw),-50%,0)}
+.copy{position:relative;z-index:3;max-width:34rem}
+h1{font-weight:900;font-size:clamp(44px,7.2vw,108px);line-height:.92;letter-spacing:-.03em}
+h1 em{font-style:normal;color:var(--acc)}
+.lead{color:var(--soft);margin-top:24px;max-width:44ch}
+.stats{display:flex;gap:28px;margin-top:32px;font-size:14px;color:var(--soft)}
+.stats b{display:block;font:800 28px Archivo,sans-serif;color:var(--ink)}
+.fan{position:absolute;right:clamp(10px,5vw,80px);top:50%;width:min(48vw,640px);height:min(64vh,540px);z-index:1;transform:translateY(calc(-50% + var(--p)*-7vh))}
+.fcard{position:absolute;width:46%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surf);border:1px solid var(--line);box-shadow:0 30px 60px #000a}
+.fcard:nth-child(1){left:0;top:14%;transform:rotate(-7deg) translateY(calc(var(--p)*30px))}
+.fcard:nth-child(2){left:27%;top:0;z-index:2;transform:rotate(2deg) translateY(calc(var(--p)*-44px))}
+.fcard:nth-child(3){left:54%;top:20%;transform:rotate(9deg) translateY(calc(var(--p)*54px))}
+.fcard img{width:100%;height:100%;object-fit:cover;display:block}
+.bar{position:absolute;left:-6%;right:-6%;background:#000;transform:translateX(calc(var(--p)*118%))}
+.bar:nth-of-type(1){top:20%;height:15%}
+.bar:nth-of-type(2){top:58%;height:12%}
+.hero .hint{position:absolute;left:var(--gut);bottom:28px;font-size:12px;color:#6d645a;z-index:3}
+
+/* sezioni */
+.sec{padding:112px var(--gut) 32px}
+.sec h2{font-weight:900;font-size:clamp(32px,5vw,64px);line-height:1;letter-spacing:-.02em}
+.sec p{color:var(--soft);margin-top:14px;max-width:56ch}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
+.rv.in{opacity:1;transform:none}
+
+/* rail iconiche: scorrimento orizzontale */
+.rail{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px var(--gut) 28px;scrollbar-color:#3a322a transparent}
+.rail .tile{flex:0 0 min(78vw,330px);scroll-snap-align:start;padding:14px}
+.rail .note{display:block;font-size:14px;color:var(--ink);opacity:.82}
+.rail h3{font:800 20px/1.15 Archivo,sans-serif}
+
+/* toolbar */
+.bar2{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px var(--gut);background:#0b0a09e6;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar2 input[type=search],.bar2 select{background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font:inherit;font-size:14px;min-height:40px}
+.bar2 input[type=search]{flex:1 1 200px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:none;border:1px solid var(--line);color:var(--soft);border-radius:99px;padding:6px 12px;font:500 13px Geist,sans-serif;cursor:pointer;min-height:36px}
+.chips button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#shown{font-size:13px;color:var(--soft);margin-left:auto}
+
+/* tessere */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;padding:24px var(--gut) 40px}
+.tile{display:flex;flex-direction:column;gap:8px;background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:10px}
+.tile[hidden]{display:none}
+.tile.done{border-color:var(--ok)}
+.art{aspect-ratio:1;border-radius:4px;background:#1c1814;display:grid;place-items:center;overflow:hidden;font:900 40px Archivo,sans-serif;color:#3a322a}
+.art img{grid-area:1/1;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+.art img.on{opacity:1}
+h3{font:600 14px/1.25 Geist,sans-serif}
+.tags b{font:600 10px Geist,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--c);margin-right:8px}
+.tR{--c:var(--R)}.tV{--c:var(--V)}.tA{--c:var(--A)}.tN{--c:var(--N)}.tD{--c:var(--D)}.tT{--c:var(--T)}.tX{--c:var(--X)}
+.note{color:var(--soft);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.chk{margin-top:auto}
+.chk label{display:flex;align-items:center;gap:8px;min-height:36px;font-size:13px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--acc)}
+.tile>a{font-size:12px}
+
+.dt{font-size:11.5px;color:var(--soft)}
+.dt:empty{display:none}
+/* confronto artwork */
+.art{cursor:zoom-in}
+.cmp{margin-top:6px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font:500 13px Geist,sans-serif;cursor:pointer;min-height:36px}
+.cmp:hover{border-color:var(--acc)}
+dialog{margin:auto;width:min(940px,94vw);max-height:90vh;overflow:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:24px}
+dialog::backdrop{background:#000c}
+dialog header{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:16px}
+dialog h2{font:900 clamp(22px,4vw,34px)/1.05 Archivo,sans-serif}
+dialog header button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 14px;cursor:pointer;min-height:40px;font:inherit}
+.cmpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.cmpgrid img{width:100%;display:block;border-radius:6px;background:#1c1814}
+.cmpgrid figure{margin:0}
+.cmpgrid b{display:block;margin:10px 0 2px;font:800 15px Archivo,sans-serif}
+.cmpgrid .jp b{color:var(--ok)}
+.cmpgrid .ws b{color:var(--acc)}
+.cmpgrid small,.cm{color:var(--soft);font-size:12.5px}
+dialog nav{margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-size:13px}
+
+/* chiusura */
+.end{padding:120px var(--gut) 140px;border-top:1px solid var(--line)}
+.end h2{font-weight:900;font-size:clamp(40px,8vw,120px);line-height:.92;letter-spacing:-.03em}
+.end .nums{display:flex;gap:48px;flex-wrap:wrap;margin-top:40px}
+.end .nums b{display:block;font:900 clamp(36px,5vw,72px) Archivo,sans-serif;color:var(--acc)}
+.end small{display:block;margin-top:56px;color:#6d645a;max-width:70ch}
+
+@media(max-width:820px){
+ .hero{display:block;padding-top:14vh;padding-bottom:64px}
+ .fan{position:relative;right:auto;top:auto;width:100%;height:290px;margin-top:44px;transform:none}
+ .fcard{width:42%}
+ .hero .hint{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ .bgword,.fan,.fcard{transform:none!important}
+ .bgword{transform:translateY(-50%)!important}
+ .bar{transform:translateX(62%)!important}
+ .rv{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="bgword" aria-hidden="true">CENSURATO</div>
+  <div class="copy">
+    <h1>Quello che il TCG ha <em>coperto</em>.</h1>
+    <p class="lead">Tutte le carte con artwork modificato rispetto all'OCG giapponese. Per ognuna spunti la versione TCG censurata e quella OCG non censurata.</p>
+    <div class="stats">
+      <div><b id="sN">0</b>carte</div>
+      <div><b id="sT">0</b>TCG censurate</div>
+      <div><b id="sI">0</b>OCG non censurate</div>
+    </div>
+  </div>
+  <div class="fan" aria-hidden="true">
+    <div class="fcard" data-hero="Dark Magician Girl"><i class="bar"></i><i class="bar"></i></div>
+    <div class="fcard" data-hero="Harpie Lady"><i class="bar"></i><i class="bar"></i></div>
+    <div class="fcard" data-hero="Barrel Dragon"><i class="bar"></i><i class="bar"></i></div>
+  </div>
+</header>
+
+<section>
+  <div class="sec"><h2 class="rv">Le censure più pesanti</h2>
+  <p class="rv">Le modifiche che hanno cambiato di più la carta, o che si sono propagate a intere famiglie. Le caselle sono le stesse dell'elenco completo.</p></div>
+  <div class="rail" id="rail"></div>
+</section>
+
+<section>
+  <div class="sec"><h2 class="rv">Elenco completo</h2>
+  <p class="rv">Gli artwork sono quelli predefiniti di YGOPRODeck, non per forza la versione censurata. Per vedere il confronto fianco a fianco apri il link alla wiki di ogni carta.</p></div>
+  <div class="bar2">
+    <input type="search" id="q" placeholder="Cerca carta o modifica" aria-label="Cerca">
+    <div class="chips" id="chips"></div>
+    <select id="st" aria-label="Stato">
+      <option value="">Tutte</option>
+      <option value="t">Mi manca la TCG</option>
+      <option value="i">Mi manca la OCG</option>
+      <option value="ok">Complete</option>
+    </select>
+    <select id="so" aria-label="Ordinamento"><option value="">Ordine alfabetico</option><option value="d">Dalla più vecchia</option><option value="r">Dalla più recente</option></select>
+    <button type="button" id="wl" class="cmp" style="margin:0" title="Scarica un .txt da importare nelle wants list di Cardmarket">Esporta wants list</button>
+    <span id="shown"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<footer class="end">
+  <h2>Completa<br>il quadro.</h2>
+  <div class="nums">
+    <div><b id="eT">0</b>TCG censurate</div>
+    <div><b id="eI">0</b>OCG non censurate</div>
+  </div>
+  <small>Elenco tratto da <a href="https://yugioh.fandom.com/wiki/List_of_modified_card_artworks" target="_blank" rel="noopener">List of modified card artworks</a> (Yu-Gi-Oh! Wiki, Fandom). Miniature da YGOPRODeck. Le spunte sono salvate nel browser: se cancelli i dati del sito le perdi.</small>
+</footer>
+
+<dialog id="cmp">
+  <header><h2 id="cmpT"></h2><button type="button" id="cmpX">Chiudi</button></header>
+  <div id="cmpBody"></div>
+  <nav id="cmpNav"></nav>
+</dialog>
+
+<script>
+const L={R:'Religione',V:'Violenza',A:'Armi',N:'Nudità',D:'Ridisegnata',T:'Testo',X:'Altro'};
+const M={v:'vestiti meno succinti',g:'gonna allungata',s:'seno ridotto',c:'scollatura coperta',t:'pancia coperta',e:"petto nudo dell'Imperatore coperto da una camicia",j:'scritte giapponesi tradotte in inglese'};
+
+const D={
+R:`A Deal with Dark Ruler|corna di Ha Des sostituite da sfere blu
+Absorbing Kid from the Sky|aureola rimossa
+Amazoness Spellcaster|pentagramma sostituito
+Angel O7|aureola rimossa
+Asleep at the Switch|collana a croce rimossa
+Backup Soldier|corna rimosse
+Bark of Dark Ruler|corna di Ha Des sostituite da sfere blu
+Beckoning Light|aureole rimosse
+Berry Magician Girl|stella sul vestito sostituita da una gemma
+BIG Win!?|pezzi di Exodia con l'artwork internazionale
+Black Magic Ritual|esagramma sostituito
+Bond Between Teacher and Student|esagramma di Dark Magician Girl diventa una gemma
+Book of Life|ankh sostituito da un uccello
+Book of Moon|ankh sostituito da un uccello
+Book of Taiyou|ankh sostituito da un uccello
+Buten|aureola rimossa
+Call of the Earthbound|lapidi a croce rese rotonde
+Call of the Haunted|lapidi a croce rese rotonde
+Card of Last Will|lapide a croce resa rotonda
+Celestia, Lightsworn Angel|aureola rimossa
+Chaos Scepter Blast|pentagramma rimosso
+Chorus of Sanctuary|aureola e croce del cancello rimosse
+Contract with Exodia|ankh rimossi dalle pietre
+Counterforce|aureola e stella viola rimosse
+Crimson Knight Vampire Bram|linee delle croci rosse rimosse
+Curse of the Circle|pentagramma sostituito
+D.3.S. Frog|aureole delle rane rimosse
+Damage Gate|lapide a croce resa rotonda
+Dark Balter the Terrible|corna, coda e ali rimosse
+Dark Magic Curtain|pentagramma inverso rimosso
+Dark Magician Girl|esagramma sostituito da un rubino
+Dark Magician of Chaos|pentagramma sul copricapo rimosso
+Dark Ruler Ha Des|corna sostituite da sfere blu
+Dark Witch|corna ricolorate e meno appuntite
+Darklord Marie|croce e corna rimosse
+Dedication through Light and Darkness|pentagramma rimosso
+Demotion|corna di Ha Des sostituite da sfere blu
+Destiny Board|tavola Ouija rimossa
+Destruct Potion|corna di Revived King Ha Des sostituite da sfere blu
+Doomsday Horror|corna sostituite da capelli
+Double Snare|corna rimosse
+Double Spell|esagramma rimosso
+Dragged Down into the Grave|lapidi a croce rese rotonde
+Earth Chant|pentagramma rimosso
+Enervating Mist|aureola dell'angelo rimossa
+Eradicating Aerosol|scritta GOD sulla mano rimossa
+Exchange|pezzi di Exodia con l'artwork OCG
+Exile of the Wicked|croce e Bibbia sostituite da pozioni
+Exodia Necross|ankh modificato
+Exodia the Forbidden One|pentagramma sostituito, punta della stella sul petto rimossa
+Fake Feather|carta in mano a Gale con l'artwork internazionale
+Fake Trap|corno di Goblin Calligrapher rimosso
+Fiend's Hand Mirror|corna e coda dell'imp rimosse, occhi del teschio rimossi
+Foolish Burial|lapide a croce resa rotonda
+Froggy Forcefield|aureola rimossa
+Fruits of Kozaky's Studies|corna di Kozaky rimosse
+Gemini Imps|corna e ali rimosse
+Ghost of a Grudge|lapidi a croce sostituite
+Ghostrick Mansion|fiocco di neve ridisegnato (sembrava un esagramma)
+Ghostrick Night|fiocco di neve ridisegnato
+Ghostrick Yuki-onna|fiocco di neve ridisegnato
+Giant Kozaky|corna rimosse
+Graceful Charity|aureola dell'angelo rimossa
+Graceful Tear|aureola dell'angelo rimossa
+Grand Convergence|croce rimossa
+Gravekeeper's Servant|lapidi a croce modificate
+Graverobber|croce sulla lapide rimossa
+Guardian Angel Joan|aureola rimossa
+Hysteric Fairy|aureola rimossa
+Infernity Break|lapide a croce sostituita
+Inferno Reckless Summon|lapidi a croce sostituite
+Iron Core Specimen Lab|corna di Kozaky rimosse
+Kozaky|corna rimosse
+Kozaky's Self-Destruct Button|corna rimosse
+LaMoon|corna ricolorate e accorciate
+Left Arm of the Forbidden One|pentagramma sostituito
+Left Leg of the Forbidden One|pentagramma sostituito
+Lesser Fiend|ali, corna e coda rimosse
+Level Conversion Lab|corna di Kozaky rimosse
+Life Absorbing Machine|demone ricolorato come umano, corna rimosse
+Lightwave Tuning|aureola rimossa
+Machine Angel Absolute Ritual|aureola rimossa
+Magic Jammer|esagramma sostituito
+Magician's Circle|esagramma sostituito
+Magician Navigation|stella sul vestito sostituita da una gemma
+Magicians Unite|esagramma sostituito
+Magicians' Defense|stella sul vestito sostituita da una gemma
+Magnet Reverse|croci sulle lapidi rimosse
+Magnificent Machine Angel|aureola rimossa
+Memory Crusher|corna rimosse
+Mind Drain|corna sostituite da sfere blu
+Mistaken Arrest|aureola dell'angelo rimossa
+Mispolymerization|corna e coda di Dark Balter rimosse
+Monster Reborn|ankh sostituito da un cristallo
+Muko|pentagramma ridisegnato come stella a dieci punte
+Mystical Donator|croce rimossa
+Next to be Lost|aureole rimosse
+Noble Knight Joan|croce e angelo sull'elmo rimossi
+Number 13: Embodiment of Crime|braccio inferiore della croce accorciato
+Number 31: Embodiment of Punishment|braccio inferiore della croce accorciato
+Order to Smash|corna di Ha Des sostituite da sfere blu
+Owner's Seal|esagramma sostituito
+People Running About|mantello della suora rimosso
+Petit Angel|aureola rimossa
+Polymerization|esagramma dell'artwork alternativo sostituito
+Premature Burial|croce sostituita da un anello
+Protective Soul Ailin|aureola rimossa
+Ray of Hope|aureole rimosse
+Reanimation Wave|corna sostituite da sfere blu
+Reject Reborn|corna sostituite da sfere blu
+Release Restraint Wave|Spellbinding Circle ridisegnata
+Revived King Ha Des|corna sostituite da sfere blu
+Right Arm of the Forbidden One|pentagramma sostituito
+Right Leg of the Forbidden One|pentagramma sostituito
+Sage's Stone|esagramma sostituito da un cerchio con rune
+Scrap-Iron Scarecrow|gamba in più (somigliava a una croce)
+Sectarian of Secrets|esagramma sulla testa rimosso
+Shadow Vampire|linee delle croci rosse rimosse
+Shared Ride|aureola dell'angelo rimossa
+Shining Angel|aureola rimossa
+Shining Friendship|aureola rimossa
+Skelengel|aureola sostituita da una corona
+Skill Drain|corna di Ha Des sostituite da sfere blu
+Skill Prisoner|corna sostituite da sfere blu
+Solemn Judgment|aureole delle ragazze rimosse
+Sorcerer of the Doomed|occhi rossi rimossi
+Sorcerous Spell Wall|esagramma sostituito da cerchi
+Soul Absorption|corna rimosse
+Soul Drain|corna sostituite da sfere blu
+Soul of Purity and Light|aureola rimossa
+Spear Cretin|corno rimosso, orecchie meno demoniache
+Spell Reproduction|esagramma sostituito
+Spellbinding Circle|esagramma sostituito
+Spirit Message "A"|tavola Ouija rimossa
+Spirit Message "I"|tavola Ouija rimossa
+Spirit Message "N"|tavola Ouija rimossa
+Spirit Message "L"|tavola Ouija rimossa
+Spirit of Flames|corna rimodellate
+Sprite's Blessing|aureola rimossa
+Success Probability 0%|corna di Kozaky rimosse
+The Cheerful Coffin|crocifisso sostituito
+The Emperor's Holiday|collana a croce rimossa
+The Grave of Enkindling|lapidi a croce rimosse
+The Puppet Magic of Dark Ruler|corna di Ha Des sostituite, corna e code della creatura viola rimosse
+Toon Dark Magician Girl|esagramma sostituito da un rubino
+Toon Table of Contents|Demon, God e 666 diventano Giant, Rat e 721
+Trading Places|corna di Ha Des sostituite, corna e coda di Winged Minion rimosse
+Treeborn Frog|aureola rimossa
+Tremendous Fire|fiamme che sembravano ali demoniache modificate
+Tyrant's Tantrum|collana a croce rimossa
+Tyrant's Temper|collana a croce rimossa
+Tyrant's Throes|collana a croce rimossa
+Tyrant's Tirade|collana a croce rimossa
+Vanquishing Light|aureola di Celestia rimossa
+Winged Minion|corna e coda rimosse
+Wingweaver|aureola rimossa
+Woodborg Inpachi|corna di Kozaky rimosse
+Worm Prince|Worm Apocalypse rimossi (sembravano un rito di culto)
+Vampire Vamp|croci su stivali e petto cambiate in segni più
+Water Magician|ankh rimosso`,
+
+V:`Abyss-sphere|mano non più al collo, espressione meno sofferente, bolle rimosse
+Aquamirror Cycle|espressione di Emilia meno sofferente
+Armed Samurai - Ben Kei|frecce rimosse dal corpo
+Arrivalrivals|presa alla guancia cambiata in presa al polso
+Attention!|Goblin Calligrapher spostato sopra l'esplosione
+Axe of Despair|volto-teschio sull'ascia rimosso
+Bad Aim|lame nel corpo dei cavalieri rimosse
+Battle-Scarred|sangue sostituito da liquido verde
+Brain Jacker|cuciture rimosse
+Butterflyoke|mano nello stagno rimossa (riferimento ad annegamento)
+Constellar Meteor|Psychelone non più tagliata a metà
+Corroding Shark|sangue rimosso o ricolorato viola, organi rimossi
+Counterforce|occhi modificati (l'angelo non sembra più ucciso)
+Creeping Darkness|maniche strappate rimosse
+D/D/D Marksman King Tell|frecce rimosse
+Dark Ruler Ha Des|liquido rosso ricolorato verde
+Darksea Float|cadavere ricolorato color carne
+Darksea Rescue|cadaveri ricolorati color carne
+Designer Frightfur|seghe ricolorate e oscurate (riferimento a tortura)
+Destiny Board|lettera D sostituita da F (DEATH diventa FINAL)
+Destruct Potion|nebbia dalla bocca rimossa
+Dramatic Rescue|ghigliottina sostituita da un albero a cui è legata la ragazza
+Earthquake|ombre dei goblin ricolorate nere (sembravano sangue)
+Ferret Flames|occhio modificato (non sembra più morto)
+Fiend Comedian|artwork sostituito con uno meno orrorifico
+Final Flame|artwork sostituito, meno segni di tortura
+Frightfur Bear|lame circondate da un alone bianco
+Frightfur Factory|lame con alone, fuoco ricolorato viola
+Frightfur Leo|seghe ricolorate e oscurate
+Frightfur March|lame ricolorate e oscurate su cinque mostri
+Frightfur Sabre-Tooth|coltelli ricolorati e oscurati
+Frightfur Tiger|lame circondate da un alone bianco
+Frightfur Wolf|lame circondate da un alone bianco
+Gimmick Puppet Dreary Doll|bara sostituita da un regalo, sangue rimosso
+Heat Wave|testa e coda del dinosauro coperte di carne
+Junk Puppet|sangue rimosso, bara sostituita da un regalo
+Last Counter|sangue dalla bocca dei pugili rimosso
+Last Day of Witch|rogo dei processi di Salem sostituito da una strega comica
+Maji-Gire Panda|panda spaventati e testa-trofeo rimossi (violenza domestica)
+Mist Valley Shaman|volto meno posseduto, fascia rimossa
+Motivating Captain|frecce spezzate rimosse
+Nightmare Wheel|uomo incatenato alla ruota sostituito da un goblin
+Nomadic Force|uomini con iridi e pupille (meno zombie)
+Oh Tokenbaum!|pecore mangiate dai goblin sostituite da uova Fabergé
+Overworked|fuoco viola, teschio di Kozaky nascosto
+Parasite Paracide|insetto che esce dal volto del cavaliere rimosso
+Poison Fangs|denti rossi ricolorati verdi
+Power Break|Axe of Despair con l'artwork internazionale
+Remote Revenge|drago a quattro ali ed esplosione rimossi
+Rigorous Reaver|sangue sulla falce rimosso
+Share the Pain|sangue dalle ferite rimosso
+Sorcerer of the Doomed|lacrime di sangue rimosse
+Soul of the Pure|angelo sanguinante che si taglia sostituito da una fata con una goccia
+Spirit Message "A"|lettera T sostituita da A (DEATH diventa FINAL), carta rinominata
+Spirit Message "I"|lettera E sostituita da I, carta rinominata
+Spirit Message "N"|lettera A sostituita da N, carta rinominata
+Spirit Message "L"|lettera H sostituita da L, carta rinominata
+Stim-Pack|liquido rosso sostituito da verde
+Stygian Dirge|fumo dalla bocca della donna rimosso
+Super Rejuvenation|sangue sulla zampa di Cave Dragon ricolorato blu
+Taunt|due bulli umani sostituiti da due alieni
+Token Sundae|pecore mangiate dai goblin sostituite da uova Fabergé
+Tomozaurus|sangue dal dinosauro morso rimosso
+Tragedy|ghigliottina sostituita da una ragazza inseguita da un uomo sospetto
+Trial and Tribulation|volto di Noelia più angosciato nell'OCG (modifica retroattiva)
+Trial of Nightmare|sangue rimosso, occhi luminosi; nome corretto da Trial of Hell
+Trickstar Crimson Heart|schizzi rossi sullo sfondo rimossi
+Ultimate Offering|offerta di sangue sostituita da un mostro che ne crea un altro
+Vampire Grace|liquido rosso nel calice ricolorato
+Wattcancel|Ojama Yellow elettrificato sostituito da una grande X con fulmine
+Yaiba Robo|simbolo rosso ricolorato nero
+Zombino|ascia in testa rimossa`,
+
+A:`A-to-Z-Dragon Buster Cannon|cannoni meno realistici
+Ancient Gear Cannon|cannoni meno realistici
+Ancient Gear Castle|cannone meno realistico
+Ancient Gear Soldier|canna modificata
+Armored Cybern|anelli bianchi sui cannoni
+Arsenal Robber|pistola e fila di proiettili rimosse
+Barrage Blast|canna ricolorata verde
+Barrel Behind the Door|pistola meno realistica
+Barrel Dragon|pistole realistiche sostituite da pistole laser
+Blackwing Armed Wing|pistola più simile a un giocattolo
+Blast Juggler|miccia rimossa, bombe ricolorate
+Blowback Dragon|testa ridisegnata
+Boot Sector Launch|tamburo della rivoltella ricolorato rosso
+Borrel Regenerator|tamburo della rivoltella ricolorato rosso
+Borrelguard Dragon|solco sul petto rimosso, canna dorata
+Chicken Game|pistole modificate in laser
+Cloak and Dagger|mirino da cecchino sostituito da un cannocchiale
+Crashbug X|micce rimosse
+Crashbug Y|micce rimosse
+Crashbug Z|micce rimosse
+Cyber Saurus|arma ricolorata
+Desperado Barrel Dragon|rivoltella ricolorata e camere riempite
+Dillingerous Dragon|fori del torso riempiti
+Don Zaloog|pistole sostituite da spade
+Doppelwarrior|mitraglietta meno realistica
+Dragoons of Draconia|pistola più realistica nell'OCG (modifica retroattiva)
+Elemental HERO Rampart Blaster|pistola meno realistica
+Enishi, Shien's Chancellor|arma della statua rimossa
+Fortress Whale|torrette ricolorate
+Edge Imp Sabres|lame oscurate
+Edge Imp Saw|seghe oscurate con un alone
+Edge Imp Tomahawk|lame oscurate con un alone
+Flash Charge Dragon|cannoni sulla schiena ricolorati verdi
+Frightfur Bear|
+Frightfur Factory|
+Frightfur Leo|
+Frightfur March|
+Frightfur Reborn|buchi dei manici delle forbici riempiti (sembrano sciabole)
+Frightfur Sabre-Tooth|
+Frightfur Sanctuary|lame di due forbici oscurate con un alone verde
+Frightfur Tiger|
+Frightfur Wolf|
+Full Salvo|missili con arti e facce da cartone animato
+Fusilier Dragon, the Dual-Mode Beast|cannoni ridisegnati come laser
+Gatling Dragon|pistole meno realistiche
+Genex Army|lanciamissili ricolorato
+Goblin Marauding Squad|mannaia sostituita da una spada
+Guardian of the Throne Room|missili ricolorati
+Igknight Reload|bossolo rimosso
+Igknight Squire|arma ridisegnata, dito riposizionato
+Infernity Avenger|pistole ridisegnate come pistole laser
+Infernity Launcher|pistola laser
+Infernity Randomizer|doppia rivoltella ridisegnata come generatore
+Into the Void|Infernity Avenger con l'artwork internazionale
+Junk Box|cannone a fiamme rimosso
+Karakuri Klock|bomba viola, miccia rimossa
+Kozmo Farmgirl|pistola più realistica nell'OCG (modifica retroattiva)
+Linkbelt Wall Dragon|pistola sulla coda ricolorata rossa
+Loop of Destruction|getti di fuoco sostituiti da granate nell'OCG (retroattiva)
+Machina Defender|pistola modificata in laser
+Machina Force|pistola modificata in laser
+Machina Sniper|pistola modificata in laser
+Magical Musket - Cross-Domination|tamburo della pistola modificato
+Magical Musket - Dancing Needle|bossoli rimossi
+Magical Musket - Last Stand|bossoli rimossi, proiettili ricolorati verdi
+Magical Musketeer Kidbrave|tamburo ridisegnato
+Magical Musketeer Wild|proiettili della cartucciera ricolorati verdi
+Masked Ninja Ebisu|micce dei proiettili rimosse
+Meklord Emperor Skiel|pistola meno realistica
+Miniborrel Dragon|camere del tamburo rimosse
+Misairuzame|lanciamissili ricolorato
+Morphtronic Datatron|da accendino a chiavetta USB, cannone a fiamme rimosso
+Pole Position|pistole modificate in laser
+Proton Blast|pistole sostituite da pistole laser al plasma
+Quickdraw Synchron|pistola da giocattolo
+Ring of Destruction|granate sostituite da getti di fuoco
+Robotic Knight|mitragliatrice ricolorata blu
+Roulette Barrel|ridisegnata per somigliare meno a una pistola
+Science Soldier|pistola meno realistica
+Sergeant Electro|mitragliatrice ricolorata blu
+Spark Blaster|pistola ricolorata
+SPYRAL Mission - Assault|tirapugni aggiunti nell'OCG (modifica retroattiva)
+Superdreadnought Rail Cannon Gustav Max|cannone ricolorato, luci nella canna (sembra un laser)
+Synchro Deflector|cannoni meno realistici
+Tactical Espionage Expert|pistola cambiata in laser da cartone animato
+The Hunter with 7 Weapons|fucile sostituito da una mazza metallica
+The Legendary Fisherman|arpione modificato in bacchetta da tamburo rituale
+Toon Barrel Dragon|canne sostituite da cilindri mistici con rune
+Trap Reactor·Y FI|pistole ricolorate rosse
+Turret Warrior|pistole ricolorate rosse
+Twin-Barrel Dragon|pistole modificate in laser
+Union Scramble|pistole sostituite da pistole laser
+Vorticular Drumgon|cartucce e proiettili ricolorati
+VWXYZ-Dragon Catapult Cannon|pistole sostituite da pistole laser
+X-Head Cannon|pistole sostituite da pistole laser
+X-Saber Wayne|pistola meno realistica
+XY-Dragon Cannon|pistole sostituite da pistole laser
+XYZ-Dragon Cannon|pistole sostituite da pistole laser
+XZ-Tank Cannon|pistole sostituite da pistole laser
+YZ-Tank Dragon|pistole sostituite da pistole laser
+Zoodiac Barrage|bazooka ricolorato
+Zoodiac Bunnyblast|bazooka ricolorato lavanda`,
+
+N:`Alich, Malebranche of the Burning Abyss|armatura sul petto rimossa nell'OCG (retroattiva)
+Absolute End|Gagagigo con i pantaloncini
+Abyss Actor - Mellow Madonna|spacco della gonna abbassato
+Abyss Actors' Curtain Call|spacco della gonna abbassato
+Abyss-scorn|#t
+Abyss-sphere|#t
+Abyss-squall|sirene più vestite
+Allure Queen LV7|#g
+Alluring Mirror Split|#v
+Amazon of the Seas|#v
+Amazoness Onslaught|tute aggiunte
+Amazoness Queen|più vestita
+Amazoness Scouts|più coperte (nell'OCG spalle, pancia e cosce scoperte)
+Amazoness Spy|vestito esteso sul petto
+Angel of Zera|gambe ricolorate come pantaloni
+Apollousa, Bow of the Goddess|#v
+Apple Magician Girl|#c, #s, #g, giarrettiere rimosse
+Aqua Spirit|#c
+Aquarian Alessa|#g
+Archfiend Emperor, the First Lord of Horror|sfera rossa all'inguine rimossa
+Arcana Force III - The Empress|#v
+Archfiend Heiress|#g, globo di energia alla mano rimosso (gesto osceno)
+Arlownay|top aggiunto
+Artifact Scythe|gamba spostata nell'OCG (retroattiva)
+Artorigus, King of the Noble Knights|linea blu rimossa (riferimento genitale)
+Asleep at the Switch|#e
+Attack Pheromones|#c, pelle ricolorata
+Assault Spirits|#v
+Avatar of The Pot|perizoma sostituito da un kilt
+Bad Aim|scheggia rimossa (connotazione sessuale)
+Batteryman Fuel Cell|lettere H e O rimosse dalle manopole
+Beatrice, Lady of the Eternal|contorno del seno rimosso
+Bicular|cono frontale rimosso (riferimento genitale)
+Blackwing - Shura the Blue Flame|più piume sul bacino
+Blackwing Armed Wing|zona inguinale modificata
+Blade Skater|striscia azzurra sul petto rimossa
+Blazing Hiita|#g, #c
+Bond Between Teacher and Student|#c
+Break Away|#v
+Burst Return|#v
+Byroad Sacrifice|#g
+Card of Safe Return|uomo vestito
+Chocolate Magician Girl|#c, #s, giarrettiere rimosse
+Cold Enchanter|calze allungate
+Constellar Algiedi|armatura a pantaloni sul bacino
+Constellar Meteor|occhi sul seno di Psychelone rimossi
+Creeping Darkness|#g
+Crowned by the World Chalice|#g, #t
+Crusadia Arboria|pantaloncini aggiunti, contorno del seno rimosso
+Crusadia Revival|pantaloncini aggiunti, #s
+Crusadia Testament|pantaloncini e calze alte aggiunti
+Crusadia Vanguard|pantaloncini aggiunti
+Cure Mermaid|#c, addominali rimossi
+Cyber Angel Benten|seno ricolorato e ridotto
+Cyber Angel Idaten|più vestiti, #s
+Cyber Angel Izana|top e perizoma estesi
+Cyber Blader|tuta aderente
+Cyber Gymnast|#v
+Cyber Harpie Lady|spuntoni sul seno rimossi
+Cyber Prima|#v
+Cyber Shield|spuntoni sul seno rimossi
+Cyber Tutu|#g, resa non trasparente
+D/D Vice Typhon|riflesso sul seno rimosso
+Dark Fusion|#s
+Dark Magician Girl|#c, #s
+Dark Witch|#g, #c
+Darklord Nurse Reficule|#s, gonna aggiunta
+Deep Sea Diva|seno meno evidente
+Different Dimension Ground|pantalone allungato
+Dinomorphia Kentregina|#s
+Doitsu|linea dell'ombelico rimossa
+Double Payback|#e
+Double Snare|vestiti al mostro che cade
+Double Trap Hole|bambola goblin sostituita da un piatto di carne
+Downerd Magician|#t
+Dramatic Rescue|#v
+Dunames Dark Witch|#v
+Dverg of the Nordic Alfar|petto scurito
+Ego Boost|parte inferiore del gigante rimossa
+Ehren, Lightsworn Monk|coscia coperta
+Elemental HERO Burstinatrix|seno coperto, #s, gamba coperta
+Elemental HERO Poison Rose|#v, #s
+Elemental HERO Wild Wingman|gambe coperte da tuta
+Elemental Recharge|#v
+Elf's Light|elfa nuda vestita
+Empress of Prophecy|#t
+Enchanting Fitting Room|lingerie sostituita da una maglietta
+Enchanting Mermaid|#s, #v
+Etoile Cyber|#s, abito ricolorato
+Evil HERO Inferno Wing|#s
+Evilswarm Azzathoth|bocca rimossa (coerenza con Worm King)
+Fairy Archer|#v
+Fairy's Gift|nudo integrale sostituito da un lungo vestito
+Fairy of the Fountain|vestiti aggiunti
+Fairy Wind|corpo nudo coperto
+Fake Hero|boxer rimossi, pantaloni alzati
+Fake Trap|lingua accorciata
+Fallen Angel of Roses|vestito più largo, #s
+Faustian Bargain|pollici meno fallici
+Fifth Hope|#v
+Flying Fortress SKY FIRE|pila di missili rimossa (riferimento genitale)
+Fortune Lady Dark|#v, #c
+Fortune Lady Earth|#v, #c
+Fortune Lady Fire|#v, #c
+Fortune Lady Light|#v, #c, zona inguinale ricolorata
+Fortune Lady Water|#v
+Fortune Lady Wind|#v, #c, zona inguinale coperta
+Fortune's Future|#v
+Fossil Excavation|glutei di Doitsu e Koitsu rimossi
+G.B. Hunter|cosce coperte
+Gagagadraw|più coperte (coerenza con le carte singole)
+Gagagaguard|spalle e braccia coperte
+Gagagatag|spalle e cosce coperte
+Gagagawind|#g
+Gagaga Clerk|calze allungate come collant
+Gagaga Girl|#v
+Garvas|parte bassa coperta
+Gearspring Spirit|#g, gambe coperte come pantaloni
+Gemini Elf|#v
+Ghost Fairy Elfobia|cosce più scoperte nell'OCG (retroattiva)
+Ghostrick Socuteboss|pantaloncini sotto la gonna
+Gimmick Puppet Des Troy|cosce ricolorate (non sembrano nude)
+Gishki Psychelone|occhi sul seno rimossi
+Glorious Illusion|ombelico coperto
+Goblin Circus|perizoma sostituito da un kilt
+Goddess of Whim|#c
+Graceful Revival|angeli vestiti
+Greenkappa|pantaloncini aggiunti
+Half Counter|#t
+Hate Buster|bomba spostata dall'inguine allo stomaco
+Harpie Channeler|#t, spalle e cosce coperte, #s
+Harpie Conductor|torso coperto da una tuta
+Harpie Dancer|#v
+Harpie Girl|più vestita in tutte le ristampe internazionali
+Harpie Harpist|più vestiti, #s
+Harpies' Hunting Ground|#v, #s
+Harpie Lady|#v
+Harpie Lady 1|#v
+Harpie Lady 2|#v
+Harpie Lady 3|#v
+Harpie Lady Elegance|spuntoni e scollatura rimossi
+Harpie Lady Sisters|spuntoni sul seno rimossi
+Harpie Oracle|torso coperto, piuma aggiunta
+Harpie Perfumer|torso coperto
+Harpie Queen|#v, pelle coperta
+Harpie's Feather Rest|#v
+Harpie's Pet Baby Dragon|Harpie Girl più vestita
+Harpie's Pet Phantasmal Dragon|Channeler più vestita, #s
+Helios - The Primordial Sun|seno rimosso
+Helios Duo Megistus|seno rimosso
+Hexe Trude|#c
+High Priestess of Prophecy|#t, cosce coperte, #s
+Hiita the Fire Charmer, Ablaze|maglione chiuso, #g
+Hino-Kagu-Tsuchi|fundoshi coperto
+Hippo Carnival|Hippo Token vestiti, luci rimosse
+Homunculus the Alchemic Being|lato del corpo ricolorato (sembrava nudo)
+Hysteric Party|#v
+Hysteric Sign|Channeler più vestita, #s
+Ice Beast Zerofyne|più spuntoni sulla gonna, #t
+Ice Queen|spalle coperte
+Ice Water|più vestiti
+Impenetrable Attack|cosce coperte, rigonfiamento all'inguine rimosso
+Incarnated Machine Angel|#v
+Infernity Doom Dragon|zona inguinale modificata
+Inherited Fortune|più vestiti
+Invader of the Throne|schiena coperta
+Ill Witch|gilet bianco, #c
+Influence Dragon|cosce coperte, placca pelvica rimossa
+Isolde, Belle of the Underworld|contorno del seno rimosso
+Junk Berserker|volto sul cavallo dei pantaloni spostato in vita
+Kanan the Swordmistress|corazza meno provocante
+Kozmoll Wickedwitch|gonna più rivelatrice nell'OCG (retroattiva)
+Kunoichi|#g
+Lady Ninja Yae|#s
+Lady of D.|#v
+LaMoon|#g, seno coperto
+Lemon Magician Girl|contorno del seno rimosso
+Life Absorbing Machine|pantaloncini al personaggio
+Life Stream Dragon|zona inguinale modificata
+Link Bound|seno parzialmente coperto
+Ljosalf of the Nordic Alfar|petto scurito
+Lumina, Lightsworn Summoner|ombelico coperto
+Lumina, Twilightsworn Shaman|ombelico coperto
+Lunalight Sabre Dancer|fianco coperto, gonna abbassata
+Lunalight Wolf|più pelo sull'inguine
+Lunar Queen Elzaim|#s
+Lyrilusc - Bird Call|parte posteriore coperta
+Lyrilusc - Ensemblue Robin|#s
+Machine Angel Ritual|#v
+Macro Cosmos|parte bassa dell'uomo in ombra (non sembra nudo)
+Magical Musket - Desperado|stoffa sotto il reggiseno, calze aggiunte
+Magical Musketeer Calamity|stoffa sotto il reggiseno, calze aggiunte
+Magical Musketeer Starfire|#c
+Magician Navigation|#c, #s
+Magicians' Defense|#c, #g
+Magician's Salvation|#c, pentagramma sostituito da un rubino
+Mahunder|#g
+Maiden of Macabre|top meno rivelatore
+Maiden of the Moonlight|#c
+Mara of the Nordic Alfar|tonalità blu scura rimossa nell'OCG (retroattiva)
+Masked HERO Koga|rigonfiamento all'inguine rimosso
+Meliae of the Trees|petto scurito
+Merciful Machine Angel|top e perizoma estesi
+Mermaid Knight|#v
+Mermail Abyssdine|#t
+Mermail Abyssgunde|#v
+Mermail Abysshilde|#t
+Mermail Abysslinde|#t
+Mermail Abyssocea|#t
+Mermail Abysstrite|#t
+Mist Valley Shaman|#v, #s
+Mithra the Thunder Vassal|#s, armatura ricolorata
+Mystical Refpanel|coscia coperta
+Mystical Sand|#s, canotta aggiunta
+Nanobreaker|più armatura sul bacino
+Nekogal #1|pantaloncini aggiunti
+Nekogal #2|pantaloncini aggiunti
+Neo Flamvell Lady|seno coperto da fiammelle
+Neo-Spacian Twinkle Moss|#s, contorno di tuta aggiunto
+Number 21: Frozen Lady Justice|#g
+Number 83: Galaxy Queen|#s, #c
+Number 87: Queen of the Night|pancia scoperta nell'OCG (retroattiva)
+One Who Hunts Souls|parte bassa ridisegnata come cavallo
+Parry Knights|top rosso aggiunto, gonna allargata
+Performapal Dramatic Theater|Hippo Token più vestiti
+Performapal Recasting|X sul sedere di Hip Hippo rimossa
+Prepare to Strike Back|biancheria sul filo sostituita da una stoffa
+Protecting Spirit Loagaeth|#c, addome meno definito
+Protector of the Throne|top più lungo
+Psychic Lifetrancer|gambe della tuta allungate
+Psychokinesis|gambe della tuta allungate
+Queen Angel of Roses|ombreggiatura del seno rimossa
+Queen Dragun Djinn|#v
+Queen's Pawn|biancheria aggiunta
+Raging Eria|#g
+Rai-Mei|seno aumentato nell'OCG (retroattiva)
+Rainbow Veil|#v
+Red Archery Girl|più vestita, ombelico rimosso
+Reeze, Whirlwind of Gusto|#t, #g
+Resonance Device|#g, gonna ridisegnata
+Resurrection of Chakra|donna vestita, #s
+Retort|maglia allungata
+Return of the Doomed|uomo vestito
+Rise of the Snake Deity|seno rimosso, pelle ricolorata
+Ritual Beast's Bond|calzamaglia allungata
+Ritual Beast Tamer Lara|calzamaglia allungata
+Rose Archer|#t
+Rose Spectre of Dunn|top aggiunto
+Sacred Noble Knight of King Artorigus|linea blu rimossa
+Shadowpriestess of Ohm|#t
+Shadow of Eyes|occhi senza trucco (meno attrazione)
+Shadow Tamer|#v
+Silent Paladin|#g
+Slacker Magician|#t
+Slate Warrior|vernice sul petto cambiata (sembrava capezzoli)
+Snake Deity's Command|seno rimosso, più vestiti
+Solitaire Magician|pelle ricolorata
+Sonic Maid|#c
+Soul Release|anima nuda coperta da un vestito bianco
+Spear Cretin|maglia e pantaloncini verdi aggiunti
+Spearfish Soldier|mutande d'armatura aggiunte
+Spellbook of Judgment|panno di Empress of Prophecy esteso
+Spellbook of Wisdom|High Priestess più vestita
+Spellbreaker of the Ice Barrier|calzamaglia aggiunta
+Spirit Burner|slip modificati in pantaloncini
+Spirit of the Winds|più vestiti
+Spy-C-Spy|#s, abiti allungati, occhi a cuore chiusi
+Staring Contest|maglia allungata
+Storming Wynn|#g
+Stumbling|Gagagigo con i pantaloncini
+Succubus Knight|#s, #c
+Summon Sorceress|mantello esteso per coprire più pelle
+Sunny Pixie|#v
+Super Double Summon|rigonfiamento rotondo in vita rimosso
+Svartalf of the Nordic Alfar|petto scurito
+T.G. Blade Blaster|zona inguinale modificata
+Tearalaments Meiru|mutandoni allungati
+The Big Cattle Drive|Harpie Queen più vestita
+The Emperor's Holiday|#e
+The Huge Revolution is Over|#e
+The Puppet Magic of Dark Ruler|pantaloncini alla creatura viola
+The Unhappy Girl|#s
+Thunder Nyan Nyan|#v
+Time Passage|Fortune Lady Light più vestita
+Toon Gemini Elf|#c, guanto aggiunto
+Trading Places|pantaloni a Winged Minion
+Trap Trick|#t
+Traptrix Atrax|#t, #g
+Traptrix Dionaea|#t
+Traptrix Mantis|pantaloncini rialzati sull'addome
+Traptrix Nepenthes|#t, #g
+Traptrix Rafflesia|#c con pelliccia, coscia coperta
+Tremendous Fire|fate nude coperte da fiamme blu
+Triangle Ecstasy Spark|Harpie Lady più vestite
+Trickstar Crimson Heart|#c
+Trickstar Holly Angel|sottoveste scurita
+Trickstar Light Stage|sottoveste scurita
+Trickstar Reincarnation|sottoveste scurita
+Turnabout|#e
+Tyrant's Tantrum|#e
+Tyrant's Temper|#e
+Tyrant's Throes|#e
+Tyrant's Tirade|#e
+Tyrant's Tummyache|#e
+Underground Arachnid|#s, #c
+Vampire Vamp|#c, #t
+Vanity's Emptiness|corpo di Vanity's Fiend rimosso (esibizionismo)
+Vennominaga the Deity of Poisonous Snakes|#c, pelle ricolorata
+Vishwar Randi|#s, #c
+Wall of Disruption|Manticore of Darkness con i pantaloncini
+Water Girl|#t, seno coperto
+Water Omotics|squame blu sul seno
+Whirlwind of Gusto|#s, pantaloncini allungati
+White Veil|contorno dei glutei rimosso
+White Wing Magician|fasce sulle cosce rimosse
+Winged Minion|pantaloncini aggiunti
+Witchcrafter Collaboration|top di Schmietta rialzato
+Witchcrafter Draping|scollatura di Haine chiusa
+Witchcrafter Haine|scollatura chiusa
+Witchcrafter Holiday|reggiseno di Schmietta coperto
+Witchcrafter Masterpiece|scollatura di Haine chiusa
+Witchcrafter Schmietta|top rialzato per coprire il reggiseno
+Worm Apocalypse|armatura sull'inguine
+Worm King|bocca sulla parte bassa rimossa (allusiva)
+Worm Rakuyeh|interno della bocca rimosso
+White Night Queen|seno coperto, #s
+X-Saber Anu Piranha|#s`,
+
+D:`Dian Keto the Cure Master|artwork alternativo: seno coperto, ankh sostituito da una sfera di luce, simbolo sullo sfondo rimosso
+Dramatic Rescue|
+Fiend Comedian|
+Final Flame|
+Last Day of Witch|
+Mad Lobster|armatura meno realistica, sfondo ridisegnato
+Mystic Tomato|ridisegnato per non sembrare una zucca di Halloween
+Offerings to the Doomed|altare con croce sostituito da una stanza del tesoro
+Otohime|nuova posa, abito meno rivelatore
+Parasite Paracide|
+Photon Lead|aureola e ali di Shining Angel rimosse, sfondo ridisegnato
+Senju of the Thousand Hands|ridisegnata per non sembrare un idolo religioso indù
+Soul of the Pure|
+Taunt|
+The Forgiving Maiden|prima somigliava troppo a una suora
+Tragedy|
+Ultimate Offering|
+Wattcancel|`,
+
+T:`7 Completed|#j
+Ante|#j
+Back to Square One|#j
+BIG Win!?|#j
+Black Illusion|logo BM sullo scudo cambiato in DM (Dark Magician)
+Cards of Consonance|#j
+Chain Material|#j
+Cross Counter|scritta sul mantello da DEATH a DES
+Dark Contract with Errors|#j
+Damage Translation|#j
+Defense Draw|#j
+Draw Muscle|#j
+Eater of Millions|#j
+Extra Gate|scritta Exit sul cartello rimossa
+Fake Feather|#j
+Fake Trap|#j
+Fusion Substitute|testo inglese sostituito da giapponese nell'OCG (retroattiva)
+Fusion Tag|#j
+Heavy Slump|#j, aggiunta una sesta parola marrone
+Into the Void|#j
+Last Will|#j
+Limit Reverse|#j
+Lose 1 Turn|#j
+Onikuji|#j
+Power Break|#j
+Performance Hurricane|logo EM sulla grancassa cambiato in PM (Performapal)
+Release Restraint Wave|#j
+Scarlet Security|#j
+Shield & Sword|#j
+Shutendoji|kanji sulla zucca rimosso
+Three of a Kind|#j
+Trap Stun|#j
+Vain Betrayer|#j
+Zombyra the Dark|testo "Zombire" rimosso`,
+
+X:`Archfiend Heiress|globo di energia alla mano rimosso (sembrava un gesto osceno)
+Aquaactress Arowana|sigaro rimosso (riferimento al fumo)
+Baby Tiragon|corna rimosse
+Card Rotator|Jerry Beans Man corretto come mostro normale
+D-Boyz|graffiti aggiunti sullo sfondo nell'OCG (retroattiva)
+Double Evolution Pill|pillola ridisegnata più metallica
+Exchange|carte nell'artwork cambiate
+Fairy Tail - Snow|colori di nastri e vestito cambiati (forse per copyright)
+Foolish Return|bara rimossa, la mano esce dal pavimento
+Gimmick Puppet Shadow Feeler|braccia sul torso centrale rimosse
+Great Long Nose|naso più sottile
+Homunculus the Alchemic Being|catene e bava rimosse (schiavitù, fame)
+Injection Fairy Lily|croci rosse sostituite da cuori (Croce Rossa); modificata anche l'edizione giapponese
+Jewels of the Valiant|crepa nel gioiello rimossa
+Legendary Fiend|artwork leggermente ridotto
+Lunar Queen Elzaim|colore del vestito cambiato
+Number 41: Bagooska the Terribly Tired Tapir|bottiglie di alcolici sostituite da cuscini
+Numinous Healer|croci rosse sostituite da cuori nell'ultima ristampa OCG
+Psychic Commander|mano piatta cambiata in dito puntato (riferimento al nazismo)
+Release, Reverse, Burst|corna di Baby Tiragon rimosse
+Retaliating "C"|controller ridisegnato per non somigliare a un prodotto reale
+Side Effects?|fulmine dietro Horn Imp rimosso (riferimento a flatulenza)
+Spy-C-Spy|sigaro e vino rimossi
+Succubus Knight|gioiello sulla fronte rimosso
+The Six Samurai - Kamon|bastoncino in bocca rimosso (riferimento al fumo)
+Token Sundae|boccali dei goblin rimossi (sembrava birra)
+Trickstar Crimson Heart|serrature a cuore delle manette rimosse
+Tyrant's Throes|liquido verde dal bicchiere rimosso (sembrava vino)
+Uni-Zombie|rossore sulle guance rimosso (sembrava ubriachezza)
+Weed Out|croce rossa sul cappello di Lily sostituita da un cuore
+Witchcrafter Holiday|bava di Madame Verre rimossa`
+};
+
+const ICON=[
+['Dark Magician Girl','Ritoccata due volte: l\'esagramma sul vestito diventa un rubino e scollatura e seno vengono ridotti. La stessa correzione compare su tutte le carte che la mostrano.'],
+['Harpie Lady','Tutta la famiglia Harpie è stata rivestita: le tre Lady, Harpie Girl in ogni ristampa internazionale, Queen, Channeler e le carte che le raffigurano.'],
+['Exodia the Forbidden One','Il pentagramma sui cinque pezzi diventa lo Spellbinding Circle e sparisce una punta della stella sul petto. Ritoccate anche Contract with Exodia ed Exodia Necross.'],
+['Monster Reborn','L\'ankh egizio diventa un cristallo stilizzato, su una delle carte più giocate di sempre.'],
+['Dark Ruler Ha Des','Corna sostituite da sfere blu e liquido rosso ricolorato verde. La modifica si propaga a una decina di carte, come Skill Drain, Demotion e Order to Smash.'],
+['Don Zaloog','Le pistole diventano spade, ma le cartucciere sul petto sono rimaste.'],
+['Barrel Dragon','Le pistole realistiche diventano pistole laser. Segue tutta la linea X, XY, XYZ e VWXYZ-Dragon Cannon.'],
+['Last Day of Witch','Il rogo ispirato ai processi di Salem è sostituito da una strega comica con un segnale di divieto.'],
+['Tragedy','La ghigliottina diventa una ragazza inseguita da un uomo sospetto.'],
+['Nightmare Wheel','L\'uomo incatenato alla ruota della tortura è sostituito da un goblin.'],
+['Soul of the Pure','L\'angelo sanguinante che si taglia con un coltello diventa una fata con una goccia d\'acqua.'],
+['Fairy\'s Gift','Il nudo integrale viene coperto da un lungo vestito.'],
+['Injection Fairy Lily','Croci rosse sostituite da cuori per evitare il richiamo alla Croce Rossa. La modifica è arrivata anche nelle ristampe giapponesi.'],
+['Psychic Commander','La mano piatta diventa un dito puntato, per evitare il richiamo al saluto nazista.'],
+['Destiny Board','Le lettere D-E-A-T-H diventano F-I-N-A-L. Le quattro carte Spirit Message cambiano anche nome.'],
+['Cyber Angel Benten','Seno ridotto e ricolorato, più stoffa. La stessa linea tocca Idaten, Izana e le carte collegate.'],
+['Senju of the Thousand Hands','Ridisegnata per non sembrare un idolo religioso indù.'],
+['Wattcancel','Ojama Yellow folgorato sostituito da una grande X con un fulmine.'],
+['Frightfur Leo','Seghe e lame oscurate con aloni per eliminare i riferimenti alla tortura, su tutto l\'archetipo Frightfur.'],
+['Toon Table of Contents','Le parole Demon, God e 666 diventano Giant, Rat e 721.'],
+['Ultimate Offering','Da offerta di sangue a un mostro che ne crea un altro.']
+];
+
+/* dati */
+const cards=new Map();
+for(const [k,txt] of Object.entries(D))for(const line of txt.split('\n')){
+  const [n,note='']=line.split('|');const name=n.trim();
+  let c=cards.get(name);if(!c)cards.set(name,c={name,tags:new Set(),notes:[]});
+  c.tags.add(k);
+  const t=note.trim().replace(/#(\w)/g,(_,x)=>M[x]||_);
+  if(t&&!c.notes.includes(t))c.notes.push(t);
+}
+const list=[...cards.values()].sort((a,b)=>a.name.localeCompare(b.name,'en'));
+const byName=new Map(list.map((c,i)=>[c.name,i]));
+
+/* stato (salvato nel browser) */
+let S={};try{S=JSON.parse(localStorage.getItem('ygo-chk')||'{}')}catch{}
+const has=(c,k)=>(S[c.name]||'').includes(k);
+const save=()=>{try{localStorage.setItem('ygo-chk',JSON.stringify(S))}catch{}};
+
+/* miniature: nome -> API YGOPRODeck, una richiesta alla volta, risultati in cache */
+const API='https://db.ygoprodeck.com/api/v7/cardinfo.php?misc=yes&name=';
+let IC={};try{IC=JSON.parse(localStorage.getItem('ygo-meta')||'{}')}catch{}
+const P={};let chain=Promise.resolve();
+const art=name=>name in IC?Promise.resolve(IC[name]):P[name]||(P[name]=chain=chain.then(async()=>{
+  try{
+    const r=await fetch(API+encodeURIComponent(name));
+    if(r.status===400)IC[name]=null;
+    else if(r.ok){const d=(await r.json()).data[0],m=(d.misc_info||[])[0]||{};IC[name]={u:d.card_images[0].image_url_cropped,d:m.tcg_date||m.ocg_date||''}}
+    try{localStorage.setItem('ygo-meta',JSON.stringify(IC))}catch{}
+  }catch{}
+  await new Promise(r=>setTimeout(r,70));
+  return IC[name];
+}));
+function paint(el,name){art(name).then(r=>{stamp();if(!r||!r.u)return;const i=new Image();i.alt='';i.onload=()=>{el.append(i);requestAnimationFrame(()=>i.classList.add('on'))};i.src=r.u})}
+const seen=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){seen.unobserve(e.target);paint(e.target,list[e.target.dataset.n].name)}}),{rootMargin:'300px'});
+
+/* render */
+const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const wiki=n=>'https://yugioh.fandom.com/wiki/'+encodeURIComponent(n.replace(/ /g,'_'));
+const box=(c,i,k,t)=>`<label><input type="checkbox" data-i="${i}" data-k="${k}"${has(c,k)?' checked':''}>${t}</label>`;
+const tile=(i,note)=>{const c=list[i];
+  return `<article class="tile${has(c,'t')&&has(c,'i')?' done':''}" data-i="${i}">
+  <div class="art" data-n="${i}"><span>${esc(c.name[0])}</span></div>
+  <h3>${esc(c.name)}</h3>
+  <p class="tags">${[...c.tags].map(t=>`<b class="t${t}">${L[t]}</b>`).join('')}</p>
+  <p class="dt" data-d="${i}"></p>
+  <p class="note">${esc(note??c.notes.join('. '))}</p>
+  <div class="chk">${box(c,i,'t','TCG censurata')}${box(c,i,'i','OCG non censurata')}</div>
+  <button type="button" class="cmp" data-i="${i}">Confronta artwork</button>
+  <a href="${wiki(c.name)}" target="_blank" rel="noopener">Scheda sulla wiki</a></article>`};
+
+const $=s=>document.querySelector(s);
+$('#grid').innerHTML=list.map((_,i)=>tile(i)).join('');
+$('#rail').innerHTML=ICON.map(([n,why])=>tile(byName.get(n),why)).join('');
+document.querySelectorAll('.art').forEach(a=>seen.observe(a));
+document.querySelectorAll('[data-hero]').forEach(f=>paint(f,f.dataset.hero));
+
+/* filtri */
+let cat='',q='',st='';
+const chips=$('#chips');
+chips.innerHTML=[['','Tutte'],...Object.entries(L)].map(([k,t])=>`<button data-c="${k}" aria-pressed="${k===''}">${t}</button>`).join('');
+function apply(){
+  let n=0;
+  document.querySelectorAll('#grid .tile').forEach(el=>{
+    const c=list[el.dataset.i],T=has(c,'t'),I=has(c,'i');
+    const ok=(!cat||c.tags.has(cat))
+      &&(!q||(c.name+' '+c.notes.join(' ')).toLowerCase().includes(q))
+      &&(!st||(st==='t'&&!T)||(st==='i'&&!I)||(st==='ok'&&T&&I));
+    el.hidden=!ok;n+=ok;
+  });
+  $('#shown').textContent=n+' carte';
+}
+chips.onclick=e=>{const b=e.target.closest('button');if(!b)return;cat=b.dataset.c;chips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));apply()};
+$('#q').oninput=e=>{q=e.target.value.trim().toLowerCase();apply()};
+$('#st').onchange=e=>{st=e.target.value;apply()};
+
+/* spunte */
+function stats(){
+  const t=list.filter(c=>has(c,'t')).length,i=list.filter(c=>has(c,'i')).length;
+  $('#sN').textContent=list.length;
+  $('#sT').textContent=$('#eT').textContent=t+' / '+list.length;
+  $('#sI').textContent=$('#eI').textContent=i+' / '+list.length;
+}
+document.addEventListener('change',e=>{
+  const el=e.target;if(!el.dataset.k)return;
+  const c=list[el.dataset.i],k=el.dataset.k,s=(S[c.name]||'').replace(k,'');
+  S[c.name]=el.checked?s+k:s;save();
+  document.querySelectorAll(`input[data-i="${el.dataset.i}"][data-k="${k}"]`).forEach(x=>x.checked=el.checked);
+  document.querySelectorAll(`.tile[data-i="${el.dataset.i}"]`).forEach(t=>t.classList.toggle('done',has(c,'t')&&has(c,'i')));
+  stats();apply();
+});
+stats();apply();
+
+/* ordine di uscita: data della prima uscita TCG (YGOPRODeck, misc=yes), caricata al bisogno e messa in cache */
+const date=c=>(IC[c.name]||{}).d||'';
+function stamp(){document.querySelectorAll('[data-d]').forEach(el=>{const d=date(list[el.dataset.d]);el.textContent=d?'Prima uscita TCG: '+d.split('-').reverse().join('/'):''})}
+let so='',loading=false;
+const cmpDate=(so,x,y,a,b)=>(!x||!y)?(!x-!y||a-b):((so==='d'?x.localeCompare(y):y.localeCompare(x))||a-b); // senza data in fondo
+function sortGrid(){
+  const ord=new Map();
+  if(so)list.map((_,i)=>i).sort((a,b)=>cmpDate(so,date(list[a]),date(list[b]),a,b)).forEach((i,r)=>ord.set(i,r));
+  document.querySelectorAll('#grid .tile').forEach(el=>el.style.order=ord.get(+el.dataset.i)??'');
+  stamp();
+}
+async function loadDates(){
+  if(loading)return;loading=true;
+  const todo=list.filter(c=>!(c.name in IC));let n=list.length-todo.length;
+  for(const c of todo){await art(c.name);n++;if(n%20===0){sortGrid();$('#shown').textContent='Carico le date '+n+' / '+list.length}}
+  loading=false;sortGrid();apply();
+}
+$('#so').onchange=e=>{so=e.target.value;sortGrid();if(so)loadDates()};
+stamp();
+
+/* wants list Cardmarket: una riga "1 Nome" per ogni carta a cui manca almeno una spunta */
+$('#wl').onclick=()=>{
+  const miss=list.filter(c=>!(has(c,'t')&&has(c,'i')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([miss.map(c=>'1 '+c.name).join('\n')+'\n'],{type:'text/plain'}));
+  a.download='wants-cardmarket.txt';a.click();URL.revokeObjectURL(a.href);
+  $('#shown').textContent=miss.length+' carte esportate';
+};
+
+/* confronto artwork: Yugipedia (MediaWiki API) elenca i file "artwork" della carta, JP = originale */
+const YP='https://yugipedia.com/api.php?action=query&format=json&formatversion=2&origin=*&redirects=1';
+const lang=f=>(f.match(/-(JP|EN|EU|NA|AE|KR|IT|FR|DE|SP|PT|TC|SC)-/)||[])[1]||'?';
+const CM={};
+const getArt=name=>CM[name]||(CM[name]=(async()=>{
+  let all=[],cont='';
+  for(let k=0;k<8;k++){
+    const r=await fetch(YP+'&prop=images&imlimit=500&titles='+encodeURIComponent(name)+cont);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const a=await r.json(),p=a.query&&a.query.pages&&a.query.pages[0];
+    if(!p||p.missing)throw new Error('pagina "'+name+'" non trovata su Yugipedia');
+    all=all.concat((p.images||[]).map(x=>x.title));
+    if(!a.continue)break;
+    cont='&imcontinue='+encodeURIComponent(a.continue.imcontinue);
+  }
+  const files=all.filter(f=>/artwork/i.test(f)).slice(0,12);
+  if(!files.length)throw new Error('nessun file "artwork" tra i '+all.length+' file della pagina');
+  return files.map(t=>{const f=t.replace(/^File:/,'');return {f,u:'https://yugipedia.com/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=420'}})
+    .sort((x,y)=>(lang(y.f)==='JP')-(lang(x.f)==='JP'));
+})());
+const cmpD=$('#cmp');
+async function compare(i){
+  const c=list[i],enc=encodeURIComponent(c.name.replace(/ /g,'_'));
+  $('#cmpT').textContent=c.name;
+  $('#cmpNav').innerHTML='<a href="https://yugipedia.com/wiki/'+enc+'" target="_blank" rel="noopener">Scheda su Yugipedia</a><a href="'+wiki(c.name)+'" target="_blank" rel="noopener">Scheda su Fandom</a>';
+  $('#cmpBody').innerHTML='<p class="cm">Carico gli artwork da Yugipedia...</p>';
+  cmpD.showModal();
+  try{
+    const it=await getArt(c.name);
+    if(!it.length)throw 0;
+    const jp=it.some(x=>lang(x.f)==='JP'),ws=it.some(x=>lang(x.f)!=='JP');
+    $('#cmpBody').innerHTML='<div class="cmpgrid">'+it.map(x=>{const j=lang(x.f)==='JP';
+      return '<figure class="'+(j?'jp':'ws')+'"><img src="'+esc(x.u)+'" alt=""><b>'+(j?'Originale giapponese (OCG)':'Versione occidentale (TCG)')+'</b><small>'+esc(x.f)+'</small></figure>'}).join('')+'</div>'
+      +(jp&&ws?'':'<p class="cm" style="margin-top:12px">Yugipedia mostra un solo artwork per questa carta: per il confronto apri le schede qui sotto.</p>');
+  }catch(err){
+    delete CM[c.name];
+    $('#cmpBody').innerHTML='<p class="cm">Artwork non disponibili ('+esc(String(err.message||err))+'). Apri le schede qui sotto per il confronto.</p>';
+  }
+}
+document.addEventListener('click',e=>{const t=e.target.closest('.art,.cmp');if(t)compare(t.dataset.i??t.dataset.n)});
+$('#cmpX').onclick=()=>cmpD.close();
+cmpD.onclick=e=>{if(e.target===cmpD)cmpD.close()};
+
+/* scroll: un solo valore --p guida i piani dell'hero */
+const hero=$('.hero');
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
+  let raf=0;
+  addEventListener('scroll',()=>{raf||(raf=requestAnimationFrame(()=>{raf=0;
+    document.documentElement.style.setProperty('--p',Math.min(1,scrollY/(hero.offsetHeight*.7)).toFixed(3))}))},{passive:true});
+}
+const rv=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rv.unobserve(e.target)}}),{threshold:.2});
+document.querySelectorAll('.rv').forEach(el=>rv.observe(el));
+</script>
+</body>
+</html>
